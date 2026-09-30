@@ -9,6 +9,7 @@ android {
         applicationId = "com.nordic.keyboard"
         minSdk = 26
         targetSdk = 35
+    buildFeatures { buildConfig = true }
         versionCode = 1
         versionName = "0.1.0"
     }

@@ -59,7 +59,7 @@ class NordicKeyboardService : InputMethodService() {
             background = GradientDrawable().apply {
                 setColor(s.panelColor)
                 setStroke(dp(1), s.borderColor)
-                cornerRadius = dp(3)
+                cornerRadius = dp(3f)
             }
         }
         root.addView(header)

@@ -184,10 +184,7 @@ class NordicKeyboardService : InputMethodService() {
             setOnTouchListener { view, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> view.background = pressed
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        view.background = normal
-                        if (event.action == MotionEvent.ACTION_UP) performKeyAction(label, action, special)
-                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> view.background = normal
                 }
                 false
             }

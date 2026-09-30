@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.SystemClock
+import android.speech.RecognizerIntent
 import android.view.Gravity
 import android.text.InputType
 import android.view.KeyEvent
@@ -210,9 +211,9 @@ class NordicKeyboardService : InputMethodService() {
 
     private fun startVoiceInput() {
         try {
-            val intent = Intent(Intent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(Intent.EXTRA_LANGUAGE_MODEL, Intent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(Intent.EXTRA_LANGUAGE, "en-US")
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)

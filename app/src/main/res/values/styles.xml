@@ -3,5 +3,7 @@
     <style name="Theme.NordicKeyboard" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#38D9FF</item>
+        <item name="android:navigationBarColor">#06080B</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>

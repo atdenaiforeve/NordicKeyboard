@@ -60,6 +60,11 @@ jobs:
         run: gradle assembleRelease
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk NordicKeyboard.apk
+      - name: Calculate APK SHA-256
+        id: checksum
+        shell: bash
+        run: echo "sha256=$(sha256sum NordicKeyboard.apk | cut -d\" \" -f1)" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -77,12 +82,14 @@ jobs:
           p.write_text(json.dumps({
               "versionCode": int(os.environ["VERSION_CODE"]),
               "versionName": os.environ["VERSION_NAME"],
-              "apkUrl": "https://github.com/atdenaiforeve/NordicKeyboard/releases/latest/download/NordicKeyboard.apk"
+              "apkUrl": "https://github.com/atdenaiforeve/NordicKeyboard/releases/latest/download/NordicKeyboard.apk",
+              "sha256": os.environ["APK_SHA256"]
           }, indent=2) + "\n")
           PY
         env:
           VERSION_NAME: ${{ steps.version.outputs.name }}
           VERSION_CODE: ${{ steps.version.outputs.code }}
+          APK_SHA256: ${{ steps.checksum.outputs.sha256 }}
 
       - name: Commit update metadata
         run: |

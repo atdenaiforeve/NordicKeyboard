@@ -77,11 +77,31 @@ class KeyboardPreviewView(context: android.content.Context, private val style: N
         super.onDraw(canvas)
         val d = resources.displayMetrics.density
         canvas.drawColor(style.surfaceColor); paint.typeface = Typeface.MONOSPACE
+        val toolbarLabels = listOf("MENU", "EMOJI", "GIF", "TOOLS", "EN", "VOICE")
+        val toolbarGap = 2f * d
+        val toolbarSide = 6f * d
+        val toolbarH = 22f * d
+        val toolbarW = (width - toolbarSide * 2f - toolbarGap * 5f) / 6f
+        toolbarLabels.forEachIndexed { index, label ->
+            val x = toolbarSide + index * (toolbarW + toolbarGap)
+            paint.style = android.graphics.Paint.Style.FILL
+            paint.color = style.panelColor
+            canvas.drawRoundRect(x, 4f * d, x + toolbarW, 4f * d + toolbarH, 3f * d, 3f * d, paint)
+            paint.style = android.graphics.Paint.Style.STROKE
+            paint.strokeWidth = d
+            paint.color = style.borderColor
+            canvas.drawRoundRect(x, 4f * d, x + toolbarW, 4f * d + toolbarH, 3f * d, 3f * d, paint)
+            paint.style = android.graphics.Paint.Style.FILL
+            paint.color = style.keyText
+            paint.textSize = 8f * d
+            paint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            canvas.drawText(label, x + toolbarW / 2f, 4f * d + toolbarH / 2f - (paint.ascent() + paint.descent()) / 2f, paint)
+        }
         paint.textAlign = android.graphics.Paint.Align.CENTER
         val rows = listOf("QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM")
         val rowH = 31f * d; val gap = 3f * d; val keyW = 28f * d
         val totalW = 10f * keyW + 9f * gap; val left = (width - totalW) / 2f
-        var y = 27f * d
+        var y = 34f * d
         rows.forEach { row ->
             val rowWidth = row.length * keyW + (row.length - 1) * gap
             val x0 = (width - rowWidth) / 2f
@@ -108,6 +128,6 @@ class KeyboardPreviewView(context: android.content.Context, private val style: N
         canvas.drawText(text, x + w / 2f, y + h / 2f - (paint.ascent() + paint.descent()) / 2f, paint)
     }
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), (128f * resources.displayMetrics.density).toInt())
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), (180f * resources.displayMetrics.density).toInt())
     }
 }

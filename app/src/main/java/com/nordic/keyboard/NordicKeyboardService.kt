@@ -1,6 +1,8 @@
 package com.nordic.keyboard
 
+import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -70,6 +72,8 @@ class NordicKeyboardService : InputMethodService() {
             layoutParams = LinearLayout.LayoutParams(-1, dp(2))
         })
 
+        root.addView(createToolbar(s))
+
         if (!symbolMode && supportsSuggestions()) {
             root.addView(createSuggestionRow(s))
         }
@@ -132,6 +136,97 @@ class NordicKeyboardService : InputMethodService() {
         root.addView(bottom)
         inputViewRoot = root
         return root
+    }
+
+    private fun createToolbar(s: NordicStyle): LinearLayout {
+        return LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(-1, dp(34))
+            val items = listOf(
+                "MENU" to { showNordicMenu() },
+                "EMOJI" to { insertEmoji() },
+                "GIF" to { showUnavailableFeature("GIF") },
+                "TOOLS" to { showNordicTools() },
+                "LANG" to { showUnavailableFeature("Language tools") },
+                "VOICE" to { startVoiceInput() }
+            )
+            items.forEach { (label, click) ->
+                addView(makeToolbarButton(label, s, click))
+            }
+        }
+    }
+
+    private fun makeToolbarButton(label: String, s: NordicStyle, click: () -> Unit): TextView =
+        TextView(this).apply {
+            text = label
+            gravity = Gravity.CENTER
+            setTextColor(s.keyText)
+            textSize = 9f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            letterSpacing = 0.04f
+            background = GradientDrawable().apply {
+                setColor(s.panelColor)
+                setStroke(dp(1), s.borderColor)
+                cornerRadius = dp(3f)
+            }
+            layoutParams = LinearLayout.LayoutParams(0, -1, 1f).apply {
+                setMargins(dp(2), dp(1), dp(2), dp(1))
+            }
+            setOnClickListener { click() }
+        }
+
+    private fun showNordicMenu() {
+        AlertDialog.Builder(this)
+            .setTitle("NORDIC // MENU")
+            .setItems(arrayOf("Keyboard settings", "Input method settings", "Close")) { dialog, which ->
+                when (which) {
+                    0 -> startActivity(Intent(this, NordicStyleActivity::class.java))
+                    1 -> startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS))
+                    else -> dialog.dismiss()
+                }
+            }
+            .show()
+    }
+
+    private fun showNordicTools() {
+        AlertDialog.Builder(this)
+            .setTitle("NORDIC // TOOLS")
+            .setItems(arrayOf("Copy", "Cut", "Paste", "Select all")) { _, which ->
+                val ic = currentInputConnection ?: return@setItems
+                when (which) {
+                    0 -> ic.performContextMenuAction(android.R.id.copy)
+                    1 -> ic.performContextMenuAction(android.R.id.cut)
+                    2 -> ic.performContextMenuAction(android.R.id.paste)
+                    3 -> ic.performContextMenuAction(android.R.id.selectAll)
+                }
+            }
+            .show()
+    }
+
+    private fun insertEmoji() {
+        currentInputConnection?.commitText("😀", 1)
+        refreshSuggestions()
+    }
+
+    private fun startVoiceInput() {
+        try {
+            val intent = Intent(Intent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(Intent.EXTRA_LANGUAGE_MODEL, Intent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(Intent.EXTRA_LANGUAGE, "en-US")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            showUnavailableFeature("Voice input")
+        }
+    }
+
+    private fun showUnavailableFeature(feature: String) {
+        AlertDialog.Builder(this)
+            .setTitle("NORDIC // $feature")
+            .setMessage("$feature is not connected yet. The Nordic toolbar is ready for it.")
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     private fun addRow(root: LinearLayout, labels: Array<String>, s: NordicStyle) {

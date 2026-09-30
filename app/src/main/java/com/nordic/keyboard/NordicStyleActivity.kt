@@ -81,7 +81,7 @@ class KeyboardPreviewView(context: android.content.Context, private val style: N
         val rows = listOf("QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM")
         val rowH = 31f * d; val gap = 3f * d; val keyW = 28f * d
         val totalW = 10f * keyW + 9f * gap; val left = (width - totalW) / 2f
-        var y = 12f * d
+        var y = 27f * d
         rows.forEach { row ->
             val rowWidth = row.length * keyW + (row.length - 1) * gap
             val x0 = (width - rowWidth) / 2f

@@ -7,6 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.SystemClock
 import android.view.Gravity
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -22,6 +23,7 @@ class NordicKeyboardService : InputMethodService() {
     private var capsLocked = false
     private var symbolMode = false
     private var lastShiftTap = 0L
+    private val suggestionViews = mutableListOf<TextView>()
 
     override fun onCreate() {
         super.onCreate()
@@ -67,6 +69,10 @@ class NordicKeyboardService : InputMethodService() {
             layoutParams = LinearLayout.LayoutParams(-1, dp(2))
         })
 
+        if (!symbolMode && supportsSuggestions()) {
+            root.addView(createSuggestionRow(s))
+        }
+
         if (symbolMode) {
             addRow(root, arrayOf("1","2","3","4","5","6","7","8","9","0"), s)
             addRow(root, arrayOf("@","#","$","%","&","*","-","+","=","/"), s)
@@ -108,12 +114,14 @@ class NordicKeyboardService : InputMethodService() {
 
         bottom.addView(makeKey("SPACE", s, 3f) {
             currentInputConnection?.commitText(" ", 1)
+            refreshSuggestions()
         })
 
         bottom.addView(makeKey("⌫", s, special = true, onLongClick = {
             deletePreviousWord()
         }) {
             currentInputConnection?.deleteSurroundingText(1, 0)
+            refreshSuggestions()
         })
 
         bottom.addView(makeKey("↵", s, special = true) {
@@ -200,6 +208,7 @@ class NordicKeyboardService : InputMethodService() {
                 }
 
                 currentInputConnection?.commitText(output, 1)
+                refreshSuggestions()
 
                 if (!special && label.length == 1 && label[0].isLetter() && caps && !capsLocked) {
                     caps = false
@@ -228,6 +237,93 @@ class NordicKeyboardService : InputMethodService() {
         if (count > 0) {
             ic.deleteSurroundingText(count, 0)
         }
+    }
+
+
+    private fun createSuggestionRow(s: NordicStyle): LinearLayout {
+        suggestionViews.clear()
+        return LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(-1, dp(36))
+            repeat(3) { index ->
+                val view = TextView(this@NordicKeyboardService).apply {
+                    gravity = Gravity.CENTER
+                    setTextColor(s.keyText)
+                    textSize = 13f
+                    typeface = Typeface.MONOSPACE
+                    background = GradientDrawable().apply {
+                        setColor(s.panelColor)
+                        setStroke(dp(1), s.borderColor)
+                        cornerRadius = dp(3f)
+                    }
+                    layoutParams = LinearLayout.LayoutParams(0, -1, 1f).apply {
+                        setMargins(dp(2), 0, dp(2), 0)
+                    }
+                    setOnClickListener { applySuggestion(text.toString()) }
+                }
+                suggestionViews.add(view)
+                addView(view)
+            }
+            post { refreshSuggestions() }
+        }
+    }
+
+    private fun supportsSuggestions(): Boolean {
+        val type = currentInputEditorInfo?.inputType ?: return true
+        val variation = type and InputType.TYPE_MASK_VARIATION
+        return variation != InputType.TYPE_TEXT_VARIATION_PASSWORD &&
+            variation != InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD &&
+            variation != InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+    }
+
+    private fun currentWord(): String {
+        val before = currentInputConnection?.getTextBeforeCursor(40, 0)?.toString() ?: return ""
+        return before.takeLastWhile { it.isLetter() }
+    }
+
+    private fun refreshSuggestions() {
+        if (suggestionViews.isEmpty()) return
+        val word = currentWord().lowercase()
+        val suggestions = if (word.isBlank()) emptyList() else suggestionList(word)
+        suggestionViews.forEachIndexed { index, view ->
+            val suggestion = suggestions.getOrNull(index)
+            view.text = suggestion ?: ""
+            view.isEnabled = suggestion != null
+        }
+    }
+
+    private fun suggestionList(prefix: String): List<String> {
+        val corrections = mapOf(
+            "teh" to "the", "adn" to "and", "taht" to "that",
+            "becuase" to "because", "recieve" to "receive",
+            "dont" to "don't", "cant" to "can't", "wont" to "won't"
+        )
+        val dictionary = listOf(
+            "the","and","that","this","there","their","they","then","with","have","from","your",
+            "you","what","when","where","which","would","could","should","about","hello","help",
+            "keyboard","nordic","normal","game","games","good","great","going","just","like","look",
+            "make","made","more","much","need","new","now","only","please","really","right","some",
+            "something","system","text","thanks","thank","time","today","tomorrow","want","were","will",
+            "work","working","world","yes","yeah","okay","because","receive","don't","can't","won't"
+        )
+        val correction = corrections[prefix]
+        val matches = dictionary.filter { it.startsWith(prefix) && it != prefix }.take(3)
+        return buildList {
+            if (correction != null) add(correction)
+            addAll(matches.filterNot { contains(it) })
+        }.take(3)
+    }
+
+    private fun applySuggestion(suggestion: String) {
+        val ic = currentInputConnection ?: return
+        val word = currentWord()
+        if (word.isEmpty()) return
+        ic.deleteSurroundingText(word.length, 0)
+        val replacement = if (caps || capsLocked) {
+            suggestion.replaceFirstChar { it.uppercase() }
+        } else suggestion
+        ic.commitText(replacement, 1)
+        refreshSuggestions()
     }
 
     private fun sendEnter() {

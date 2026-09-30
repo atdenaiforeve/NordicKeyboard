@@ -24,6 +24,7 @@ class NordicKeyboardService : InputMethodService() {
     private var symbolMode = false
     private var lastShiftTap = 0L
     private val suggestionViews = mutableListOf<TextView>()
+    private var inputViewRoot: View? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -129,6 +130,7 @@ class NordicKeyboardService : InputMethodService() {
         })
 
         root.addView(bottom)
+        inputViewRoot = root
         return root
     }
 
@@ -150,6 +152,7 @@ class NordicKeyboardService : InputMethodService() {
         action: (() -> Unit)? = null
     ): Button =
         Button(this).apply {
+            tag = label
             text = if (!special && label.length == 1 && label[0].isLetter()) {
                 if (caps) label else label.lowercase()
             } else {
@@ -181,7 +184,10 @@ class NordicKeyboardService : InputMethodService() {
             setOnTouchListener { view, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> view.background = pressed
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> view.background = normal
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        view.background = normal
+                        if (event.action == MotionEvent.ACTION_UP) performKeyAction(label, action, special)
+                    }
                 }
                 false
             }
@@ -195,27 +201,38 @@ class NordicKeyboardService : InputMethodService() {
                 }
             }
 
-            setOnClickListener {
-                if (action != null) {
-                    action.invoke()
-                    return@setOnClickListener
-                }
+            setOnClickListener { performKeyAction(label, action, special) }
+        }
 
-                val output = if (!special && label.length == 1 && label[0].isLetter()) {
-                    if (caps) label else label.lowercase()
-                } else {
-                    label
-                }
+    private fun performKeyAction(label: String, action: (() -> Unit)?, special: Boolean) {
+        if (action != null) {
+            action.invoke()
+            return
+        }
+        val output = if (!special && label.length == 1 && label[0].isLetter()) {
+            if (caps) label else label.lowercase()
+        } else label
+        currentInputConnection?.commitText(output, 1)
+        refreshSuggestions()
+        if (!special && label.length == 1 && label[0].isLetter() && caps && !capsLocked) {
+            caps = false
+            updateLetterLabels()
+        }
+    }
 
-                currentInputConnection?.commitText(output, 1)
-                refreshSuggestions()
-
-                if (!special && label.length == 1 && label[0].isLetter() && caps && !capsLocked) {
-                    caps = false
-                    setInputView(onCreateInputView())
+    private fun updateLetterLabels() {
+        val root = inputViewRoot as? LinearLayout ?: return
+        for (i in 0 until root.childCount) {
+            val row = root.getChildAt(i) as? LinearLayout ?: continue
+            for (j in 0 until row.childCount) {
+                val child = row.getChildAt(j) as? Button ?: continue
+                val label = child.tag as? String ?: continue
+                if (label.length == 1 && label[0].isLetter()) {
+                    child.text = if (caps) label else label.lowercase()
                 }
             }
         }
+    }
 
     private fun deletePreviousWord() {
         val ic = currentInputConnection ?: return
@@ -236,6 +253,7 @@ class NordicKeyboardService : InputMethodService() {
 
         if (count > 0) {
             ic.deleteSurroundingText(count, 0)
+            refreshSuggestions()
         }
     }
 

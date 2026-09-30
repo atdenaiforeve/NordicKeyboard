@@ -181,8 +181,8 @@ class NordicKeyboardService : InputMethodService() {
             .setTitle("NORDIC // MENU")
             .setItems(arrayOf("Keyboard settings", "Input method settings", "Close")) { dialog, which ->
                 when (which) {
-                    0 -> startActivity(Intent(this, NordicStyleActivity::class.java))
-                    1 -> startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS))
+                    0 -> startActivity(Intent(this, NordicStyleActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    1 -> startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     else -> dialog.dismiss()
                 }
             }

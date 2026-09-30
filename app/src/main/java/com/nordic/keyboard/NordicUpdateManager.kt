@@ -11,6 +11,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -31,8 +32,9 @@ class NordicUpdateManager(private val context: Context) {
                 val remoteCode = json.getInt("versionCode")
                 val remoteName = json.getString("versionName")
                 val apkUrl = json.getString("apkUrl")
+                val expectedSha256 = json.getString("sha256")
                 handler.post {
-                    if (remoteCode > BuildConfig.VERSION_CODE) showUpdate(remoteName, apkUrl)
+                    if (remoteCode > BuildConfig.VERSION_CODE) showUpdate(remoteName, apkUrl, expectedSha256)
                     else if (manual) AlertDialog.Builder(context).setTitle("Nordic Keyboard").setMessage("NORDIC is up to date.\nInstalled version: " + BuildConfig.VERSION_NAME).setPositiveButton("OK", null).show()
                 }
             } catch (e: Exception) {
@@ -41,11 +43,11 @@ class NordicUpdateManager(private val context: Context) {
         }.start()
     }
 
-    private fun showUpdate(versionName: String, apkUrl: String) {
-        AlertDialog.Builder(context).setTitle("Nordic Keyboard update").setMessage("Version $versionName is available. Download and install it?").setNegativeButton("Later", null).setPositiveButton("UPDATE") { _, _ -> downloadAndInstall(apkUrl) }.show()
+    private fun showUpdate(versionName: String, apkUrl: String, expectedSha256: String) {
+        AlertDialog.Builder(context).setTitle("Nordic Keyboard update").setMessage("Version $versionName is available. Download and install it?").setNegativeButton("Later", null).setPositiveButton("UPDATE") { _, _ -> downloadAndInstall(apkUrl, expectedSha256) }.show()
     }
 
-    private fun downloadAndInstall(apkUrl: String) {
+    private fun downloadAndInstall(apkUrl: String, expectedSha256: String) {
         Thread {
             try {
                 val dir = File(context.cacheDir, "updates").apply { mkdirs() }
@@ -56,6 +58,11 @@ class NordicUpdateManager(private val context: Context) {
                 connection.requestMethod = "GET"
                 connection.inputStream.use { input -> apk.outputStream().use { output -> input.copyTo(output) } }
                 connection.disconnect()
+                val actualSha256 = MessageDigest.getInstance("SHA-256").digest(apk.readBytes()).joinToString("") { "%02x".format(it) }
+                if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
+                    apk.delete()
+                    throw SecurityException("Downloaded update failed integrity verification.")
+                }
                 val uri = FileProvider.getUriForFile(context, "com.nordic.keyboard.fileprovider", apk)
                 handler.post {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {

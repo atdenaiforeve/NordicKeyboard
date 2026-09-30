@@ -94,7 +94,7 @@ class NordicStyleActivity : Activity() {
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 }
 
-private class KeyboardPreviewView(
+class KeyboardPreviewView(
     context: android.content.Context,
     private val style: NordicStyle
 ) : android.view.View(context) {

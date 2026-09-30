@@ -21,7 +21,8 @@ class NordicStyleEditorActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         manager = NordicStyleManager(this)
-        buildEditor(manager.customOrNull() ?: manager.selected())
+        draft = manager.customOrNull() ?: manager.selected()
+        buildEditor(draft)
     }
 
     private fun buildEditor(start: NordicStyle) {
@@ -71,7 +72,7 @@ class NordicStyleEditorActivity : Activity() {
         setContentView(root)
     }
 
-    private var draft: NordicStyle = NordicStyles.default
+    private lateinit var draft: NordicStyle
     private fun label(t:String,s:Float,c:Int)=TextView(this).apply{ text=t; textSize=s; setTextColor(c); typeface=Typeface.MONOSPACE; setPadding(0,0,0,dp(7)) }
     private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
 }

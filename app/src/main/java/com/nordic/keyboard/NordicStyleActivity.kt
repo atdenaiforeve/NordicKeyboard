@@ -25,32 +25,39 @@ class NordicStyleActivity : Activity() {
             setBackgroundColor(0xFF06080B.toInt())
         }
 
-        list.addView(label("NORDIC // STYLE CONTROL", 20f, 0xFF38D9FF.toInt(), 0.08f))
-        list.addView(label("STYLE DATABASE // ONLINE", 11f, 0xFF667387.toInt(), 0f))
+        list.addView(label("NORDIC // KEYBOARD", 20f, 0xFF38D9FF.toInt(), 0.08f))
+        list.addView(label("PRE-BUILT INPUT CORE // FIXED DESIGN", 11f, 0xFF667387.toInt(), 0f))
 
-        toggle = TextView(this).apply {
-            setTextColor(if (manager.isStyleEnabled()) 0xFF38D9FF.toInt() else 0xFFE63946.toInt())
-            textSize = 15f
+        list.addView(label("KEYBOARD PREVIEW", 10f, 0xFF667387.toInt(), 0f).apply {
+            setPadding(0, dp(18), 0, dp(7))
+        })
+        list.addView(KeyboardPreviewView(this, NordicStyles.default))
+
+        list.addView(label("NORDIC DESIGN // ACTIVE", 10f, 0xFF667387.toInt(), 0f).apply {
+            setPadding(0, dp(18), 0, dp(7))
+        })
+        list.addView(TextView(this).apply {
+            text = "●  NORDIC DEFAULT  // FIXED"
+            setTextColor(0xFF38D9FF.toInt())
+            textSize = 14f
             typeface = Typeface.MONOSPACE
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), dp(16), dp(14), dp(16))
-            setOnClickListener {
-                manager.setStyleEnabled(!manager.isStyleEnabled())
-                buildScreen()
-            }
-        }
-        updateToggleText()
-        list.addView(toggle)
+            setPadding(dp(12), dp(14), dp(12), dp(14))
+            setBackgroundColor(0xFF11151B.toInt())
+        })
 
-        list.addView(label("LIVE KEYBOARD PREVIEW", 10f, 0xFF667387.toInt(), 0f).apply {
+        list.addView(label("NO STYLE EDITOR // NO CUSTOM LAYOUT", 10f, 0xFF667387.toInt(), 0f).apply {
             setPadding(0, dp(18), 0, dp(7))
         })
-        list.addView(KeyboardPreviewView(this, manager.selected()))
-
-        list.addView(label("SELECTED STYLE", 10f, 0xFF667387.toInt(), 0f).apply {
-            setPadding(0, dp(18), 0, dp(7))
+        list.addView(TextView(this).apply {
+            text = "This keyboard uses one pre-built Nordic design. The appearance and keyboard layout are fixed."
+            setTextColor(0xFFB6C2CF.toInt())
+            textSize = 13f
+            typeface = Typeface.MONOSPACE
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            setBackgroundColor(0xFF0D1117.toInt())
         })
-        rebuildStyles()
+
         setContentView(list)
     }
 
@@ -63,28 +70,6 @@ class NordicStyleActivity : Activity() {
             letterSpacing = spacing
             setPadding(0, 0, 0, dp(10))
         }
-
-    private fun updateToggleText() {
-        toggle.text = if (manager.isStyleEnabled()) "●  STYLE SYSTEM // ON" else "■  STYLE SYSTEM // OFF"
-        toggle.setTextColor(if (manager.isStyleEnabled()) 0xFF38D9FF.toInt() else 0xFFE63946.toInt())
-        toggle.setBackgroundColor(if (manager.isStyleEnabled()) 0xFF11151B.toInt() else 0xFF1A0C10.toInt())
-    }
-
-    private fun rebuildStyles() {
-        manager.all().forEach { item ->
-            val active = manager.selected().id == item.id
-            list.addView(TextView(this).apply {
-                text = if (active) "●  " + item.name.uppercase() + "  // ACTIVE" else "○  " + item.name.uppercase()
-                setTextColor(if (active) 0xFF38D9FF.toInt() else 0xFFB6C2CF.toInt())
-                textSize = 14f
-                typeface = Typeface.MONOSPACE
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(14), dp(12), dp(14))
-                setBackgroundColor(if (active) 0xFF11151B.toInt() else 0xFF0D1117.toInt())
-                setOnClickListener { manager.setSelected(item.id); buildScreen() }
-            })
-        }
-    }
 
     override fun onResume() {
         super.onResume()
@@ -115,7 +100,7 @@ class KeyboardPreviewView(
         val left = (width - totalW) / 2f
         var y = 12f * d
 
-        rows.forEachIndexed { index, row ->
+        rows.forEach { row ->
             val count = row.length
             val rowWidth = count * keyW + (count - 1) * gap
             val x0 = (width - rowWidth) / 2f
@@ -127,7 +112,7 @@ class KeyboardPreviewView(
 
         val controls = listOf("⇧", "SPACE", "⌫", "↵")
         var x = left
-        controls.forEachIndexed { i, text ->
+        controls.forEach { text ->
             val w = if (text == "SPACE") 82f * d else 29f * d
             drawKey(canvas, x, y + 2f * d, w, rowH, text, true, d)
             x += w + gap

@@ -66,3 +66,28 @@ jobs:
           tag_name: v${{ steps.version.outputs.name }}
           name: NordicKeyboard v${{ steps.version.outputs.name }}
           files: NordicKeyboard.apk
+
+      - name: Publish update metadata
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path("update/update.json")
+          p.write_text(json.dumps({
+              "versionCode": int(os.environ["VERSION_CODE"]),
+              "versionName": os.environ["VERSION_NAME"],
+              "apkUrl": "https://github.com/atdenaiforeve/NordicKeyboard/releases/latest/download/NordicKeyboard.apk"
+          }, indent=2) + "\n")
+          PY
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+
+      - name: Commit update metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update/update.json
+          git commit -m "Publish NordicKeyboard update metadata" || exit 0
+          git push

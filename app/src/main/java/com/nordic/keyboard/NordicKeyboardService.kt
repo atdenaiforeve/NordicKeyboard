@@ -8,7 +8,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.SystemClock
-import android.speech.RecognizerIntent
 import android.view.Gravity
 import android.text.InputType
 import android.view.KeyEvent
@@ -147,10 +146,7 @@ class NordicKeyboardService : InputMethodService() {
             val items = listOf(
                 "MENU" to { showNordicMenu() },
                 "EMOJI" to { insertEmoji() },
-                "GIF" to { showUnavailableFeature("GIF") },
-                "TOOLS" to { showNordicTools() },
-                "LANG" to { showUnavailableFeature("Language tools") },
-                "VOICE" to { startVoiceInput() }
+                "TOOLS" to { showNordicTools() }
             )
             items.forEach { (label, click) ->
                 addView(makeToolbarButton(label, s, click))
@@ -208,27 +204,6 @@ class NordicKeyboardService : InputMethodService() {
     private fun insertEmoji() {
         currentInputConnection?.commitText("😀", 1)
         refreshSuggestions()
-    }
-
-    private fun startVoiceInput() {
-        try {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        } catch (_: Exception) {
-            showUnavailableFeature("Voice input")
-        }
-    }
-
-    private fun showUnavailableFeature(feature: String) {
-        AlertDialog.Builder(this)
-            .setTitle("NORDIC // $feature")
-            .setMessage("$feature is not connected yet. The Nordic toolbar is ready for it.")
-            .setPositiveButton("OK", null)
-            .show()
     }
 
     private fun addRow(root: LinearLayout, labels: Array<String>, s: NordicStyle) {

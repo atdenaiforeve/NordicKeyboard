@@ -12,11 +12,9 @@ import android.widget.TextView
 
 class NordicStyleActivity : Activity() {
     private lateinit var list: LinearLayout
-    private lateinit var updater: NordicUpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        updater = NordicUpdateManager(this)
         buildScreen()
     }
 
@@ -33,8 +31,18 @@ class NordicStyleActivity : Activity() {
         list.addView(label("SETUP", 10f, 0xFF667387.toInt(), 0f).apply { setPadding(0, dp(18), 0, dp(7)) })
         list.addView(action("ENABLE NORDIC KEYBOARD") { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) })
         list.addView(action("SELECT NORDIC KEYBOARD") { (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).showInputMethodPicker() })
-        list.addView(label("UPDATES", 10f, 0xFF667387.toInt(), 0f).apply { setPadding(0, dp(18), 0, dp(7)) })
-        list.addView(action("CHECK FOR UPDATE") { updater.checkForUpdate(manual = true) })
+        list.addView(label("SMART INPUT", 10f, 0xFF667387.toInt(), 0f).apply { setPadding(0, dp(18), 0, dp(7)) })
+        list.addView(TextView(this).apply {
+            text = "●  LOCAL AUTO-CORRECT  //  LOCAL NEXT-WORD SUGGESTIONS"
+            setTextColor(0xFF38D9FF.toInt()); textSize = 13f; typeface = Typeface.MONOSPACE
+            gravity = Gravity.CENTER_VERTICAL; setPadding(dp(12), dp(14), dp(12), dp(14)); setBackgroundColor(0xFF11151B.toInt())
+        })
+        list.addView(label("PRIVACY", 10f, 0xFF667387.toInt(), 0f).apply { setPadding(0, dp(18), 0, dp(7)) })
+        list.addView(TextView(this).apply {
+            text = "No network updater. No self-install feature. Suggestions and corrections run locally."
+            setTextColor(0xFFB6C2CF.toInt()); textSize = 13f; typeface = Typeface.MONOSPACE
+            setPadding(dp(12), dp(12), dp(12), dp(12)); setBackgroundColor(0xFF0D1117.toInt())
+        })
         list.addView(label("NORDIC DESIGN // ACTIVE", 10f, 0xFF667387.toInt(), 0f).apply { setPadding(0, dp(18), 0, dp(7)) })
         list.addView(TextView(this).apply {
             text = "●  NORDIC DEFAULT  // FIXED"
@@ -65,7 +73,6 @@ class NordicStyleActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (::list.isInitialized) buildScreen()
-        if (::updater.isInitialized) updater.checkForUpdate(manual = false)
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
@@ -77,11 +84,11 @@ class KeyboardPreviewView(context: android.content.Context, private val style: N
         super.onDraw(canvas)
         val d = resources.displayMetrics.density
         canvas.drawColor(style.surfaceColor); paint.typeface = Typeface.MONOSPACE
-        val toolbarLabels = listOf("MENU", "EMOJI", "GIF", "TOOLS", "EN", "VOICE")
+        val toolbarLabels = listOf("MENU", "EMOJI", "TOOLS")
         val toolbarGap = 2f * d
         val toolbarSide = 6f * d
         val toolbarH = 22f * d
-        val toolbarW = (width - toolbarSide * 2f - toolbarGap * 5f) / 6f
+        val toolbarW = (width - toolbarSide * 2f - toolbarGap * 2f) / 3f
         toolbarLabels.forEachIndexed { index, label ->
             val x = toolbarSide + index * (toolbarW + toolbarGap)
             paint.style = android.graphics.Paint.Style.FILL

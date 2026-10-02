@@ -119,6 +119,7 @@ class NordicKeyboardService : InputMethodService() {
         })
 
         bottom.addView(makeKey("SPACE", s, 3f) {
+            autoCorrectCurrentWord()
             currentInputConnection?.commitText(" ", 1)
             refreshSuggestions()
         })
@@ -394,8 +395,10 @@ class NordicKeyboardService : InputMethodService() {
 
     private fun refreshSuggestions() {
         if (suggestionViews.isEmpty()) return
+
         val word = currentWord().lowercase()
-        val suggestions = if (word.isBlank()) emptyList() else suggestionList(word)
+        val suggestions = if (word.isNotBlank()) suggestionList(word) else nextWordSuggestions()
+
         suggestionViews.forEachIndexed { index, view ->
             val suggestion = suggestions.getOrNull(index)
             view.text = suggestion ?: ""
@@ -403,27 +406,102 @@ class NordicKeyboardService : InputMethodService() {
         }
     }
 
+    private fun autoCorrectCurrentWord() {
+        val ic = currentInputConnection ?: return
+        val word = currentWord()
+        if (word.isBlank()) return
+
+        val corrected = corrections[word.lowercase()] ?: return
+        ic.deleteSurroundingText(word.length, 0)
+        ic.commitText(matchCase(word, corrected), 1)
+    }
+
+    private fun matchCase(original: String, replacement: String): String {
+        return when {
+            original.all { it.isUpperCase() } -> replacement.uppercase()
+            original.firstOrNull()?.isUpperCase() == true ->
+                replacement.replaceFirstChar { it.uppercase() }
+            else -> replacement
+        }
+    }
+
+    private val corrections = mapOf(
+        "teh" to "the", "adn" to "and", "taht" to "that",
+        "becuase" to "because", "recieve" to "receive",
+        "seperate" to "separate", "definately" to "definitely",
+        "occured" to "occurred", "tomorow" to "tomorrow",
+        "dont" to "don't", "cant" to "can't", "wont" to "won't",
+        "im" to "i'm", "ive" to "i've", "ill" to "i'll", "id" to "i'd",
+        "youre" to "you're", "theyre" to "they're"
+    )
+
     private fun suggestionList(prefix: String): List<String> {
-        val corrections = mapOf(
-            "teh" to "the", "adn" to "and", "taht" to "that",
-            "becuase" to "because", "recieve" to "receive",
-            "dont" to "don't", "cant" to "can't", "wont" to "won't"
-        )
-        val dictionary = listOf(
-            "the","and","that","this","there","their","they","then","with","have","from","your",
-            "you","what","when","where","which","would","could","should","about","hello","help",
-            "keyboard","nordic","normal","game","games","good","great","going","just","like","look",
-            "make","made","more","much","need","new","now","only","please","really","right","some",
-            "something","system","text","thanks","thank","time","today","tomorrow","want","were","will",
-            "work","working","world","yes","yeah","okay","because","receive","don't","can't","won't"
-        )
+        val matches = englishWords.filter { it.startsWith(prefix) && it != prefix }
         val correction = corrections[prefix]
-        val matches = dictionary.filter { it.startsWith(prefix) && it != prefix }.take(3)
         return buildList {
             if (correction != null) add(correction)
             addAll(matches.filterNot { contains(it) })
         }.take(3)
     }
+
+    private fun nextWordSuggestions(): List<String> {
+        val before = currentInputConnection?.getTextBeforeCursor(80, 0)?.toString() ?: return emptyList()
+        val words = before.trimEnd().split(Regex("\\s+"))
+        val last = words.lastOrNull()?.lowercase()?.trim { !it.isLetter() } ?: return emptyList()
+        return nextWords[last].orEmpty().take(3)
+    }
+
+    private val nextWords = mapOf(
+        "hello" to listOf("there", "world", "everyone"),
+        "how" to listOf("are", "is", "do"),
+        "are" to listOf("you", "we", "they"),
+        "what" to listOf("is", "are", "do"),
+        "where" to listOf("are", "is", "do"),
+        "when" to listOf("is", "are", "will"),
+        "why" to listOf("is", "are", "do"),
+        "i" to listOf("am", "can", "will"),
+        "you" to listOf("are", "can", "have"),
+        "we" to listOf("are", "can", "will"),
+        "they" to listOf("are", "have", "will"),
+        "this" to listOf("is", "will", "can"),
+        "that" to listOf("is", "was", "will"),
+        "the" to listOf("next", "same", "best"),
+        "can" to listOf("you", "we", "i"),
+        "could" to listOf("you", "we", "i"),
+        "would" to listOf("you", "be", "like"),
+        "please" to listOf("help", "send", "let"),
+        "thank" to listOf("you", "god", "you"),
+        "good" to listOf("morning", "night", "luck"),
+        "see" to listOf("you", "the", "if"),
+        "let" to listOf("me", "us", "them"),
+        "make" to listOf("it", "a", "sure"),
+        "going" to listOf("to", "back", "home"),
+        "want" to listOf("to", "a", "you"),
+        "need" to listOf("to", "a", "some"),
+        "have" to listOf("to", "a", "been"),
+        "will" to listOf("be", "have", "do"),
+        "just" to listOf("a", "want", "need"),
+        "really" to listOf("good", "want", "like"),
+        "nordic" to listOf("keyboard", "system", "style"),
+        "keyboard" to listOf("is", "with", "for"),
+        "game" to listOf("is", "and", "with"),
+        "games" to listOf("are", "and", "like"),
+        "today" to listOf("is", "i", "we"),
+        "tomorrow" to listOf("is", "i", "we")
+    )
+
+    private val englishWords = listOf(
+        "a","about","again","all","am","and","are","as","at","back","be","because","been","best",
+        "but","by","can","can't","could","did","do","does","don't","for","from","game","games",
+        "going","good","great","have","hello","help","here","how","i","i'd","i'll","i'm","i've",
+        "if","in","is","it","just","keyboard","let","like","look","make","made","me","more","much",
+        "my","need","new","next","no","normal","not","now","of","on","only","or","other","our",
+        "please","really","receive","right","same","see","send","should","so","some","something",
+        "sure","system","thank","thanks","that","the","their","them","then","there","they",
+        "they're","this","time","to","today","tomorrow","want","was","we","were","what","when",
+        "where","which","who","will","with","work","working","world","would","yes","you","your",
+        "you're"
+    )
 
     private fun applySuggestion(suggestion: String) {
         val ic = currentInputConnection ?: return
